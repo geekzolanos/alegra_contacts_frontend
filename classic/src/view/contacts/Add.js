@@ -1,66 +1,81 @@
 /**
- * Agregar contacto
+ * ViewController de vista "Contacto.Add"
  */
-Ext.define('Contactos.view.contacts.Add', {
-    extend: 'Ext.container.Container',
-    requires: [
-        'Contactos.view.contacts.AddController',
-        'Contactos.view.component.InnerContactGrid',
-        'Contactos.view.component.EditContactForm',
-        'Contactos.store.Contacto',
-        'Contactos.store.PriceList',
-        'Contactos.store.Terms',
-        'Contactos.store.Sellers',
-    ],
+Ext.define('Contactos.view.contacts.AddController', {
+    extend: 'Ext.app.ViewController',
+    alias: 'controller.add',
+    requires: ['Ext.window.Toast'],
 
-    xtype: 'contacts-add',
-    controller: 'add',
-    autoScroll: true,
-
-    layout: {
-        type: 'vbox',
-        align: 'center'
+    /*
+     * Handler de enrutado
+     */
+    onInitView: function() {
+        // Agregamos una fila vacia en la grilla de InnerContact
+        Ext.getCmp('innercontactgrid-add').controller.onInnerContactAdd();
     },
 
-    defaults: {
-        width: 1024
-    },
+    /**
+     * Envia los datos al servicio
+     * TODO: Reforzar validacion
+     */
+    onSubmit: function(e) {
+        var innercontactCmp, innercontactVal, formBodyCmp, formBodyVal;
 
-    items: [
-        /* 
-         * Header
-         */
-        {
-            xtype: 'app-header'
-        },
+        innercontactCmp = Ext.getCmp('innercontactgrid-add');
+        formBodyCmp = Ext.getCmp('form-contactadd');
 
-        /* 
-         * Contenido
-         */
-        {
-            xtype: 'editcontactform',
-            id: 'form-contactadd',
-            title: 'Agregar Contacto',
-            icon: 'https://cdn1.alegra.com/images/create-icon.png'
-        },
-        {
-            xtype: 'innercontactgrid',
-            id: 'innercontactgrid-add',
-            margin: "20px 0"
-        },
-        {
-            xtype: 'button',
-            text: 'Guardar Contacto',
-            scale: 'medium',
-            handler: 'onSubmit'
-        },
-
-        /* 
-         * Footer
-         */
-        {
-            xtype: 'app-footer',
-            margin: '30 0'
+        // Verificamos que los componentes existan
+        if (!innercontactCmp || !formBodyCmp) {
+            console.error("No se encuentran los componentes requeridos");
+            throw new Exception("NULL_CMP_REQUIRED");
         }
-    ]
-})
+
+        // Obtenemos los datos
+        innercontactVal = innercontactCmp.controller.getItems();
+        formBodyVal = formBodyCmp.form.getFieldValues();
+
+        // Internal Contacts
+        formBodyVal.internalContacts = [];
+        if (innercontactVal.length > 0) {
+            Array.forEach(innercontactVal, function(contact) {
+                formBodyVal.internalContacts.push(contact.data);
+            });
+        }
+
+        // Type
+        formBodyVal.type = [];
+        if (formBodyVal.client) {
+            formBodyVal.type.push("client");
+        }
+        if (formBodyVal.provider) {
+            formBodyVal.type.push("provider");
+        }
+
+        // Direccion
+        formBodyVal.address = { address: formBodyVal.address1, city: formBodyVal.address2 };
+
+        // Creamos la instancia del modelo a partir de los datos
+        var contact = Ext.create('Contactos.model.Contacto', formBodyVal);
+
+        // Subimos al servicio
+        contact.save({
+            success: function(e) {
+                Ext.toast({
+                    html: 'Contacto almacenado satisfactoriamente',
+                    title: 'Operacion exitosa',
+                    width: 300,
+                    align: 't'
+                });
+                Contactos.app.getController('Router').redirectTo('all');
+            },
+            failure: function(e) {
+                Ext.toast({
+                    html: 'Ha ocurrido un error, por favor verifique los datos e intente nuevamente.',
+                    title: 'Operacion fallida',
+                    width: 300,
+                    align: 't'
+                });
+            }
+        })
+    }
+});

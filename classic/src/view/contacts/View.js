@@ -1,187 +1,106 @@
 /**
- * Vista de detalles de contacto
+ * ViewController de vista Contacts.View
  */
-Ext.define('Contactos.view.contacts.View', {
-    extend: 'Ext.container.Container',
+Ext.define('Contactos.view.contacts.ViewController', {
+    extend: 'Ext.app.ViewController',
+    alias: 'controller.view',
+    requires: ['Ext.window.Toast'],
 
-    requires: [
-        'Contactos.view.contacts.ViewController'
-    ],
+    /**
+     * ID de contacto actual
+     */
+    curId: 0,
 
-    xtype: 'contacts-view',
-    controller: 'view',
-    autoScroll: true,
-    layout: {
-        type: 'vbox',
-        align: 'center'
-    },
+    /**
+     * Handler de enrutado
+     */
+    onInitView: function(id) {
+        var t = this;
 
-    defaults: {
-        width: 1024
-    },
-
-    items: [
-        /* 
-         * Header
-         */
-        {
-            xtype: 'app-header'
-        },
-
-        /* 
-         * Contenido
-         */
-        {
-            xtype: 'panel',
-            ui: 'contacts-main',
-            id: 'contacts-view-panel',
-            title: 'Detalles de Contacto',
-            layout: 'hbox',
-            header: {
-                items: [{
-                    xtype: 'button',
-                    ui: 'contacts-main',
-                    scale: 'medium',
-                    text: 'Editar',
-                    handler: "editContact"
-                }]
+        // Cargamos el modelo
+        Contactos.model.Contacto.load(id, {
+            success: function(data) {
+                // Preparamos la vista
+                t.curId = id;
+                t.setDetailsView(data);
             },
-            defaults: {
-                border: false,
-                xtype: 'panel',
-                layout: {
-                    type: 'table',
-                    columns: 2
-                },
-                defaults: {
-                    bodyPadding: 8
-                },
-                flex: 1
-            },
-            items: [{
-                    title: 'Datos Generales',
-                    items: [
-                        { html: { cn: "Identificación " } },
-                        { id: 'contacts-field-identification' },
-
-                        { html: { cn: "Teléfono" } },
-                        { id: 'contacts-field-phone' },
-
-                        { html: { cn: "Teléfono 2" } },
-                        { id: 'contacts-field-phone2' },
-
-                        { html: { cn: "Fax" } },
-                        { id: 'contacts-field-fax' },
-
-                        { html: { cn: "Celular" } },
-                        { id: 'contacts-field-mobileid' },
-
-                        { html: { cn: "Dirección" } },
-                        { id: 'contacts-field-address' },
-
-                        { html: { cn: "Ciudad" } },
-                        { id: 'contacts-field-city' },
-
-                        { html: { cn: "Correo electrónico" } },
-                        { id: 'contacts-field-email' },
-
-                        { html: { cn: "Observaciones " } },
-                        { id: 'contacts-field-observations' },
-
-                        { html: { cn: "Archivos adjunto" } },
-                        { id: 'contacts-field-file' },
-
-                        { html: { cn: "Enlace estado de cuenta" } },
-                        { id: 'contacts-field-balance' }
-                    ]
-                },
-                {
-                    title: 'Saldos',
-                    items: [
-                        { html: { cn: "Por cobrar" } },
-                        { id: 'contacts-field-cobrar', html: "0.00" },
-
-                        { html: { cn: "Por cobrar vencido" } },
-                        { id: 'contacts-field-vencido', html: "0.00" },
-
-                        { html: { cn: "Por pagar" } },
-                        { id: 'contacts-field-pagar', html: "0.00" },
-
-                        { html: { cn: "Anticipos recibidos" } },
-                        { id: 'contacts-field-antrecibidos', html: "0.00" },
-
-                        { html: { cn: "Anticipos entregados" } },
-                        { id: 'contacts-field-antentregados', html: "0.00" },
-
-                        { html: { cn: "Notas crédito por aplicar" } },
-                        { id: 'contacts-field-notcredito', html: "0.00" },
-
-                        { html: { cn: "Notas débito por aplicar" } },
-                        { id: 'contacts-field-notdebito', html: "0.00" }
-                    ]
-                }
-            ]
-        },
-
-        /* 
-         * Internal Contacts
-         */
-        {
-            xtype: 'grid',
-            id: 'innercontactgrid-view',
-            title: 'Contactos',
-            store: {
-                model: 'Contactos.model.InnerContact'
-            },
-            columns: [{
-                    header: 'Nombres',
-                    dataIndex: 'name',
-                    flex: 1
-                },
-                {
-                    header: 'Apellidos',
-                    dataIndex: 'surname',
-                    flex: 1
-                },
-                {
-                    header: 'Correo Electronico',
-                    dataIndex: 'email',
-                    flex: 1
-                },
-                {
-                    header: 'Telefono',
-                    dataIndex: 'phonePrimary',
-                    flex: 1
-                },
-                {
-                    header: 'Celular',
-                    dataIndex: 'mobileid',
-                    flex: 1
-                }
-            ]
-        },
-
-        /* 
-         * Stats Placeholder
-         */
-        {
-            xtype: 'image',
-            src: '/resources/images/contact_stats_placeholder.png',
-            height: 615,
-            margin: "20 0",
-            listeners: {
-                el: {
-                    click: 'openStats'
-                }
+            failed: function() {
+                Ext.toast({
+                    html: 'Ha ocurrido un error, por favor intente nuevamente mas tarde.',
+                    title: 'Operacion fallida',
+                    width: 300,
+                    align: 't'
+                });
+                Contactos.app.getController('Router').redirectTo('all');
             }
-        },
+        });
+    },
 
-        /* 
-         * Footer
-         */
-        {
-            xtype: 'app-footer',
-            margin: '30 0'
-        }
-    ]
-})
+    /**
+     * Actualiza componentes de la vista con detalles del contacto
+     * @param contact Instancia de Modelo 'Contacto'
+     */
+    setDetailsView: function(contact) {
+        // Referencias
+        var rootPanel = Ext.getCmp('contacts-view-panel');
+        var fieldidentification = Ext.getCmp('contacts-field-identification');
+        var fieldphone = Ext.getCmp('contacts-field-phone');
+        var fieldphone2 = Ext.getCmp('contacts-field-phone2');
+        var fieldfax = Ext.getCmp('contacts-field-fax');
+        var fieldmobileid = Ext.getCmp('contacts-field-mobileid');
+        var fieldaddress = Ext.getCmp('contacts-field-address');
+        var fieldcity = Ext.getCmp('contacts-field-city');
+        var fieldemail = Ext.getCmp('contacts-field-email');
+        var fieldobservations = Ext.getCmp('contacts-field-observations');
+        var fieldfile = Ext.getCmp('contacts-field-file');
+        var fieldbalance = Ext.getCmp('contacts-field-balance');
+        var fieldcobrar = Ext.getCmp('contacts-field-cobrar');
+        var fieldvencido = Ext.getCmp('contacts-field-vencido');
+        var fieldpagar = Ext.getCmp('contacts-field-pagar');
+        var fieldantrecibidos = Ext.getCmp('contacts-field-antrecibidos');
+        var fieldantentregados = Ext.getCmp('contacts-field-antentregados');
+        var fieldnotcredito = Ext.getCmp('contacts-field-notcredito');
+        var fieldnotdebito = Ext.getCmp('contacts-field-notdebito');
+        var innerContact = Ext.getCmp('innercontactgrid-view');
+
+        // Titulo de panel
+        rootPanel.setTitle(contact.data.name);
+
+        fieldidentification.update(contact.data.identification);
+        fieldemail.update(contact.data.email);
+        fieldphone.update(contact.data.phonePrimary);
+        fieldphone2.update(contact.data.phoneSecondary);
+        fieldfax.update(contact.data.fax);
+        fieldmobileid.update(contact.data.mobile);
+        fieldobservations.update(contact.data.observations);
+        fieldaddress.update(contact.data.address.address);
+        fieldcity.update(contact.data.address.city);
+
+        // TODO: Manejo de subida de archivos
+        //fieldfile.update()
+
+        // Internal Contacts
+        var ic = [];
+        Array.forEach(contact.data.internalContacts, function(c) {
+            ic.push(Ext.create("Contactos.model.InnerContact", c));
+        });
+        innerContact.store.loadData(ic);
+        innerContact.getView().refresh();
+    },
+
+    /**
+     * Abre la vista de edicion de contacto
+     */
+    editContact: function() {
+        Contactos.app.getController('Router').redirectTo('edit/' + this.curId);
+    },
+
+    /**
+     * Redirecciona a la aplicacion Alegra para detalles de estadisticas
+     */
+    openStats: function() {
+        // La API no proporciona suficiente informacion para generar las estadisticas
+        // Por tanto, redireccionamos a la app oficial para mostrar estos detalles.
+        window.open('https://app.alegra.com/client/view/id/' + this.curId, '_blank');
+    }
+});

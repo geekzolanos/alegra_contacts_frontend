@@ -1,136 +1,97 @@
 /**
- * Indice de contactos
+ * ViewController de vista 'Contacto.Main'
  */
-Ext.define('Contactos.view.contacts.Main', {
-    extend: 'Ext.container.Container',
-    requires: [
-        'Contactos.view.contacts.MainController',
-        'Contactos.store.Contacto'
-    ],
+Ext.define('Contactos.view.contacts.MainController', {
+    extend: 'Ext.app.ViewController',
+    alias: 'controller.main',
 
-    xtype: 'contacts-main',
-    controller: 'main',
-    autoScroll: true,
-    layout: {
-        type: 'vbox',
-        align: 'center'
+    requires: ['Ext.window.Toast', 'Ext.window.MessageBox'],
+
+    /**
+     * Handler de enrutado
+     */
+    onInitView: function() {
+        this.refreshGrid();
     },
 
-    defaults: {
-        width: 1024
-    },
+    /**
+     * Confirma la eliminacion de un contacto a partir de la vista.
+     */
+    requestRemoval: function() {
+        var t = this;
 
-    items: [
-        /* 
-         * Header
-         */
-        {
-            xtype: 'app-header',
-        },
+        // El metodo actual es un handler de un ActionColumn
+        // Por la cantidad de parametros enviados, accedemos manualmente
+        // solo a los que necesitamos
+        var grid = arguments[0];
+        var contact = arguments[5];
 
-        /* 
-         * Contenido
-         */
-        {
-            xtype: 'panel',
-            ui: 'contacts-main',
-            title: 'Contactos',
-            icon: 'https://cdn1.alegra.com/images/index-icon.png',
-            header: {
-                items: [{
-                        xtype: 'button',
-                        ui: 'contacts-main',
-                        scale: 'medium',
-                        text: 'Nuevo Contacto',
-                        icon: 'https://cdn1.alegra.com/images/plus-icon.png',
-                        href: '#add',
-                        hrefTarget: '_self'
-                    },
-                    {
-                        xtype: 'tbspacer',
-                        flex: 2.4
-                    },
-                    {
-                        xtype: 'button',
-                        text: 'Importar desde excel',
-                        href: '#'
-                    },
-                    {
-                        xtype: 'button',
-                        text: 'Exportar',
-                        href: '#'
-                    }
-                ],
-            },
-            items: [{
-                    xtype: 'gridpanel',
-                    id: 'contacts-main-grid',
-                    store: {
-                        type: 'contacto'
-                    },
-                    columns: [{
-                            text: 'Nombre',
-                            dataIndex: 'name',
-                            align: 'center',
-                            flex: 1
-                        },
-                        {
-                            text: 'Identificacion',
-                            dataIndex: 'identification',
-                            align: 'center',
-                            flex: 1
-                        },
-                        {
-                            text: 'Telefono 1',
-                            dataIndex: 'phonePrimary',
-                            align: 'center',
-                            flex: 1
-                        },
-                        {
-                            text: 'Observaciones',
-                            dataIndex: 'observations',
-                            align: 'center',
-                            flex: 1
-                        },
-                        {
-                            text: 'Acciones',
-                            xtype: 'actioncolumn',
-                            width: 200,
-                            align: 'center',
-                            items: [{
-                                    icon: 'https://cdn1.alegra.com/images/icons/zoom.png',
-                                    tooltip: 'Detalles',
-                                    handler: 'viewContact'
-                                },
-                                {
-                                    icon: 'https://cdn1.alegra.com/images/icons/page_edit.png',
-                                    tooltip: 'Modificar',
-                                    handler: 'editContact'
-                                },
-                                {
-                                    icon: 'https://cdn1.alegra.com/images/icons/delete.png',
-                                    tooltip: 'Eliminar',
-                                    handler: "requestRemoval"
-                                }
-                            ]
-                        },
-                    ],
-                    bbar: [{
-                        xtype: 'pagingtoolbar',
-                        displayInfo: true,
-                        displayMsg: 'Mostrando {0} - {1} de {2}',
-                        emptyMsg: 'No hay contactos'
-                    }]
-                },
-
-                /* 
-                 * Footer
-                 */
-                {
-                    xtype: 'app-footer',
-                    margin: '30 0'
+        // Confirmacion
+        Ext.Msg.show({
+            title: 'Confirmacion',
+            message: 'Confirme, ¿Desea eliminar el contacto ' + contact.data.name + '? (Esta accion no se puede deshacer)',
+            buttons: Ext.Msg.YESNO,
+            icon: Ext.Msg.QUESTION,
+            fn: function(btn) {
+                if (btn === 'yes') {
+                    // Borramos el contacto
+                    t.removeContact(contact);
                 }
-            ]
-        }
-    ]
-})
+            }
+        })
+    },
+
+    /**
+     * Muestra la vista "Detalles de contacto"
+     */
+    viewContact: function() {
+        var contact = arguments[5];
+        Contactos.app.getController('Router').redirectTo('view/' + contact.id);
+    },
+
+    /**
+     * Muestra la vista "Edicion de contacto"
+     */
+    editContact: function() {
+        var contact = arguments[5];
+        Contactos.app.getController('Router').redirectTo('edit/' + contact.id);
+    },
+
+    /**
+     * Elimina un contacto
+     * @param contact Instancia de modelo "Contacto"
+     */
+    removeContact: function(contact) {
+        var t = this;
+        contact.erase({
+            success: function(e) {
+                Ext.toast({
+                    html: 'Contacto eliminado satisfactoriamente',
+                    title: 'Operacion exitosa',
+                    width: 300,
+                    align: 't'
+                });
+
+                t.refreshGrid();
+            },
+
+            failure: function(e) {
+                Ext.toast({
+                    html: 'Ha ocurrido un error, por favor intente nuevamente mas tarde.',
+                    title: 'Operacion fallida',
+                    width: 300,
+                    align: 't'
+                });
+            }
+        });
+    },
+
+    /**
+     * Refresca el indice de contactos
+     */
+    refreshGrid: function() {
+        var grid = Ext.getCmp('contacts-main-grid');
+        grid.store.load();
+        grid.getView().refresh();
+    }
+});
