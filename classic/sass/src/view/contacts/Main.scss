@@ -1,0 +1,5 @@
+@include extjs-panel-ui( $ui: 'contacts-main', $ui-header-padding: 20px 0, $ui-header-background-color: transparent, $ui-header-font-size: 21px, $ui-header-color: #1a5e53);
+@include extjs-button-medium-ui ( $ui: 'contacts-main', $background-color: #00535e, $color: #fff, $border-radius: 5px);
+.x-action-col-icon {
+    margin: 0 4px 0 4px;
+}
